@@ -1,18 +1,18 @@
 pipeline {
-    agent any
-    tools {
-        jdk 'jdk16'
-        nodejs 'nodejs'
-    }
-    environment {
-        SCANNER_HOME = tool 'sonar-scanner'
-        APP_NAME = "reddit-clone-pipeline"
-        RELEASE = "1.0.0"
-        DOCKER_USER = "ramachandra9"
-        DOCKER_PASS = 'Photon@2024'
-        IMAGE_NAME = "${DOCKER_USER}" + "/" + "${APP_NAME}"
-        IMAGE_TAG = "${RELEASE}-${BUILD_NUMBER}"
-	JENKINS_API_TOKEN = credentials("JENKINS_API_TOKEN")
+	agent any
+	tools {
+		jdk 'jdk17'
+		node 'node16'
+	}
+	environment {
+            SCANNER_HOME = tool 'sonar-scanner'
+            APP_NAME = "reddit-clone-pipeline"
+            RELEASE = "1.0.0"
+            DOCKER_USER = "ramachandra9"
+            DOCKER_PASS = 'dockerhub'
+            IMAGE_NAME = "${DOCKER_USER}" + "/" + "${APP_NAME}"
+            IMAGE_TAG = "${RELEASE}-${BUILD_NUMBER}"
+	    JENKINS_API_TOKEN = credentials("JENKINS_API_TOKEN")
     }
     stages {
         stage('clean workspace') {
@@ -50,35 +50,5 @@ pipeline {
                 sh "trivy fs . > trivyfs.txt"
              }
          }
-	 stage("Build & Push Docker Image") {
-             steps {
-                 script {
-                     docker.withRegistry('',DOCKER_PASS) {
-                         docker_image = docker.build "${IMAGE_NAME}"
-                     }
-                     docker.withRegistry('',DOCKER_PASS) {
-                         docker_image.push("${IMAGE_TAG}")
-                         docker_image.push('latest')
-                     }
-                 }
-             }
-         }
-	 stage("Trivy Image Scan") {
-             steps {
-                 script {
-	              sh ('docker run -v /var/run/docker.sock:/var/run/docker.sock aquasec/trivy image ashfaque9x/reddit-clone-pipeline:latest --no-progress --scanners vuln  --exit-code 0 --severity HIGH,CRITICAL --format table > trivyimage.txt')
-                 }
-             }
-         }
-	 stage ('Cleanup Artifacts') {
-             steps {
-                 script {
-                      sh "docker rmi ${IMAGE_NAME}:${IMAGE_TAG}"
-                      sh "docker rmi ${IMAGE_NAME}:latest"
-                 }
-             }
-         }
-
-     }
-
+    }
 }
